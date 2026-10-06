@@ -1,17 +1,12 @@
-import { ArrowDownRightIcon, ArrowRightIcon, ArrowUpRightIcon, InfoIcon } from "@phosphor-icons/react";
+import { InfoIcon } from "@phosphor-icons/react";
 import { FUEL_INFO } from "@/domain/fuels";
-import type { FuelTrend, TrendDirection, TrendFile } from "@/domain/schema";
+import type { FuelTrend, TrendFile } from "@/domain/schema";
+import { DIRECTION } from "@/components/direction";
 import { FuelDot } from "@/components/fuel-picker";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "@/components/link";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-
-const DIRECTION = {
-  up: { icon: ArrowUpRightIcon, key: "trendUp", tone: "text-up bg-up/10" },
-  down: { icon: ArrowDownRightIcon, key: "trendDown", tone: "text-down bg-down/10" },
-  stable: { icon: ArrowRightIcon, key: "trendStable", tone: "text-muted-foreground bg-muted" },
-} as const satisfies Record<TrendDirection, unknown>;
 
 export function TrendCards({ trend }: { trend: TrendFile }) {
   const { t } = useI18n();

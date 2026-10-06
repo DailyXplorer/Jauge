@@ -3,6 +3,7 @@ import type {
   BrentFile,
   DailySeries,
   DepartmentSeriesFile,
+  InsightsFile,
   Meta,
   RankingFile,
   StationsFile,
@@ -24,7 +25,20 @@ function load<T>(file: string): Promise<T> {
   return promise as Promise<T>;
 }
 
+/** `insights.json` only exists once `pnpm insights:run` has succeeded; its absence is not an error. */
+function loadOptional<T>(file: string): Promise<T | null> {
+  let promise = cache.get(file);
+  if (!promise) {
+    promise = fetch(`/data/${file}`)
+      .then((response) => (response.ok ? response.json() : null))
+      .catch(() => null);
+    cache.set(file, promise);
+  }
+  return promise as Promise<T | null>;
+}
+
 export const useMeta = () => use(load<Meta>("meta.json"));
+export const useInsights = () => use(loadOptional<InsightsFile>("insights.json"));
 export const useNational = () => use(load<DailySeries>("series/fr.json"));
 export const useTrend = () => use(load<TrendFile>("trend.json"));
 export const useBrent = () => use(load<BrentFile>("brent.json"));

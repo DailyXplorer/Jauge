@@ -2,8 +2,10 @@
 
 Jauge is an open-source dashboard of French fuel prices. It shows daily averages for France, each
 region, department and city, the cheapest stations right now, and a simple, explainable trend for
-the next 7 days. There is no AI and no hidden model: every number comes from official open data and
-a linear regression you can read in `scripts/data/trend.ts`.
+the next 7 days. Prices and the trend use no AI and no hidden model: every number comes from official
+open data and a linear regression you can read in `scripts/data/trend.ts`. Separately, an optional
+AI market brief explains why prices may move, from the news. It is labelled as AI-generated and
+never replaces the numeric trend (see [AI market brief](#ai-market-brief)).
 
 Six fuels: Gazole, SP95, E10, SP98, E85, GPLc. UI in English and French, light and dark mode.
 
@@ -28,7 +30,10 @@ Other scripts:
 | ------------------- | ---------------------------------------------------------------------------- |
 | `pnpm data:build`   | Downloads all sources (cached in `data-cache/`) and writes `public/data/`.   |
 | `pnpm data:refresh` | Keeps the cached yearly archives, fetches recent days, the instant feed and market data, then rebuilds. |
-| `pnpm build`        | Type-checks and builds the static site into `dist/`.                         |
+| `pnpm insights:run` | Writes the AI market brief to `public/data/insights.json` (needs a Mistral key). |
+| `pnpm build`        | Type-checks and builds the static site into `dist/`, then runs `check:secrets`. |
+| `pnpm check:secrets`| Fails if the Mistral key could leak into `dist/`, `public/`, git or `src/`.  |
+| `pnpm test`         | Vitest unit tests.                                                           |
 | `pnpm lint`         | ESLint.                                                                      |
 
 There is no backend. The app is static and lazily loads the JSON files it needs.
@@ -111,6 +116,80 @@ shows the hit rate next to a naive baseline that repeats last week's direction.
 - Averages are plain means over stations. They are not weighted by sales volume.
 - On the October 2026 data, the model is about as accurate as the naive baseline (59–83%
   depending on the fuel). Treat it as an indication, never as a certainty.
+
+## AI market brief
+
+Every 30 minutes, a local job asks Mistral to read the fuel market news (Brent and OPEC+, refinery outages and strikes, crack spreads, EUR/USD, TICPE, supply
+risks) and explain in French and English why pump prices may go up or down over the next 3 to 10
+days. The site only displays the stored result, in the "Why prices are moving" card on the overview.
+
+The news comes from two paths. By default, the job fetches a fixed allowlist of RSS feeds
+(`scripts/insights/feeds.ts`: Connaissance des Énergies, OilPrice.com, U.S. EIA, and two fixed
+Google News searches in French and English) and passes their titles and summaries to the model as
+untrusted data, with no tool enabled. Mistral's built-in `web_search` is limited to 20 searches per
+day and 3 per minute on this account (from the `x-ratelimit-*-web-search-*` headers), so it is used
+at most once every 2 hours and only while more than 2 searches remain today. A `web_search` quota
+error falls back to the feeds in the same run. The Conversations API is used for both paths,
+because this account's chat completions endpoint allows 0 requests per minute.
+
+```sh
+cp .env.example .env    # then set the key in .env
+pnpm insights:run
+```
+
+| Variable | Default | |
+| -------- | ------- | - |
+| `MISTRAL_API_KEY` | none | Server-side only. Never prefix it with `VITE_`. |
+| `MISTRAL_MODEL` | `mistral-medium-latest` | Any model that supports `web_search`. |
+| `MISTRAL_MIN_REQUEST_INTERVAL_MS` | `1100` | Minimum gap between two API calls. |
+
+### Security model
+
+- **No visitor input reaches the model.** There is no API server, form or query parameter. The model
+  receives a fixed system prompt, Jauge's own numbers (latest prices, 7 and 30-day changes, Brent in
+  € and $, EUR/USD, the price model's outputs) and the news: allowlisted feed items, or web search
+  results. The only tool ever enabled is `web_search`. A source URL must come from those feeds or
+  search results.
+- **News pages are untrusted.** The prompt says web content is data, never instructions. The answer is
+  parsed as JSON and checked with a strict zod schema (`scripts/insights/brief.ts`): length caps,
+  enums, French text in `fr` fields and English in `en` fields, Latin script only. Any HTML, markdown,
+  link, script, prompt-injection phrasing, call to action, or mention of prompts, the system or keys
+  rejects the whole brief. A source whose URL is not https or was not returned by the search tool is
+  dropped. If two attempts fail, the previous brief is kept and marked stale. Raw model text is never
+  published.
+- **JSON is enforced by validation, not by the API.** Combining `response_format` (`json_schema` or
+  `json_object`) with `web_search` never returned within 75–90 s when tested on 2026-10-06, so the
+  schema is in the prompt and the validator is the gate.
+- **The numbers win.** The brief never overwrites the numeric trend. When the AI disagrees with the
+  price model with high confidence, the card shows both, labelled "AI view" and "Price model".
+- **Limits.** One run per 30-minute slot (a run starting less than 28 minutes after the previous one
+  exits; the slack absorbs scheduling jitter), a lock file so a concurrent run exits, at most 3 API
+  calls per run and 60 per UTC day, and a 60 s request timeout. A rate-limit or auth error ends the
+  run, except a `web_search` quota error, which falls back to the feeds. State is in
+  `data-cache/insights-state.json`.
+- **Logs hold metadata only**: time, model, duration, token counts, searches, ok or error kind, in
+  `data-cache/insights.log`.
+- **The UI renders plain text** through React, with no `dangerouslySetInnerHTML`. Links open with
+  `rel="noopener noreferrer nofollow"`. The card says "Generated by AI from news on … — may be wrong"
+  and turns to "Outdated" after 2 hours.
+- `pnpm check:secrets` runs after every build.
+
+A run makes one API call when the first answer validates. Measured on 2026-10-06 with
+`mistral-medium-latest`: a feeds call used about 6,100 prompt and 2,000 completion tokens in 13–15 s;
+a `web_search` call used about 2,400 prompt tokens, 50,000 connector tokens (search results read by
+the model) and 3,000 to 5,000 completion tokens, in 20 to 55 s.
+
+### Scheduling on a Mac
+
+```sh
+scripts/install-launchd.sh               # install or reinstall
+scripts/install-launchd.sh --uninstall
+```
+
+This installs the user LaunchAgent `~/Library/LaunchAgents/io.jauge.insights.plist`. It runs
+`pnpm data:refresh && pnpm insights:run` from the project directory every 1,800 s and at login, with
+its output in `data-cache/launchd.out.log` and `data-cache/launchd.err.log`. Static hosting must then
+redeploy `public/data/insights.json` to publish each new brief.
 
 ## Stack
 

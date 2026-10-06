@@ -136,3 +136,59 @@ export interface TrendFile {
   stableThresholdCents: number;
   fuels: FuelTrend[];
 }
+
+/** A text the market brief job writes in both UI languages. */
+export interface Localized {
+  fr: string;
+  en: string;
+}
+
+export type InsightConfidence = "low" | "medium" | "high";
+export type DriverImpact = "up" | "down" | "neutral";
+
+export interface FuelInsight {
+  fuel: FuelId;
+  direction: TrendDirection;
+  confidence: InsightConfidence;
+  horizonDays: number;
+  summary: Localized;
+  /** The numeric trend's direction when the brief was written. */
+  priceModelDirection: TrendDirection | null;
+  /** The AI view disagrees with the price model with high confidence; the UI shows both. */
+  conflictsWithPriceModel: boolean;
+}
+
+export interface MarketDriver {
+  title: Localized;
+  impact: DriverImpact;
+  explanation: Localized;
+  sourceIds: string[];
+}
+
+export interface NewsSource {
+  id: string;
+  title: string;
+  publisher: string;
+  /** Always https and always one of the URLs the search tool returned. */
+  url: string;
+  publishedAt: string | null;
+}
+
+export interface MarketBrief {
+  headline: Localized;
+  fuels: FuelInsight[];
+  drivers: MarketDriver[];
+  sources: NewsSource[];
+}
+
+/** `insights.json`: the latest validated AI market brief. Written only by `pnpm insights:run`. */
+export interface InsightsFile {
+  /** When the published brief was generated from the news. */
+  generatedAt: string;
+  /** When the job last tried to refresh it. */
+  checkedAt: string;
+  /** The last refresh failed, so the brief shown is an older one. */
+  stale: boolean;
+  model: string;
+  brief: MarketBrief;
+}

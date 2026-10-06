@@ -4,3 +4,7 @@ data-cache
 *.local
 .DS_Store
 .vite
+
+.env
+.env.*
+!.env.example

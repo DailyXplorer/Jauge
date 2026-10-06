@@ -6,7 +6,8 @@ import { KpiCards } from "@/components/kpi-cards";
 import { CardSkeleton, KpiSkeleton } from "@/components/loading";
 import { RegionRanking } from "@/components/region-ranking";
 import { TrendCards } from "@/components/trend-cards";
-import { useBrent, useMeta, useNational, useRanking, useTrend } from "@/lib/data";
+import { InsightsCard } from "@/components/insights-card";
+import { useBrent, useInsights, useMeta, useNational, useRanking, useTrend } from "@/lib/data";
 import { useI18n } from "@/lib/i18n";
 import { lastPoint } from "@/lib/series";
 
@@ -30,6 +31,9 @@ export function OverviewPage() {
       <Suspense fallback={<KpiSkeleton />}>
         <Trends />
       </Suspense>
+      <Suspense fallback={<CardSkeleton className="h-[32rem]" />}>
+        <Insights />
+      </Suspense>
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <Suspense fallback={<CardSkeleton className="h-[28rem]" />}>
           <BrentSection />
@@ -52,6 +56,11 @@ function NationalHistory() {
 
 function Trends() {
   return <TrendCards trend={useTrend()} />;
+}
+
+function Insights() {
+  const insights = useInsights();
+  return insights ? <InsightsCard insights={insights} /> : null;
 }
 
 function BrentSection() {
