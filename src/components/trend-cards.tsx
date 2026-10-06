@@ -1,4 +1,3 @@
-import { InfoIcon } from "@phosphor-icons/react";
 import { FUEL_INFO } from "@/domain/fuels";
 import type { FuelTrend, TrendFile } from "@/domain/schema";
 import { DIRECTION } from "@/components/direction";
@@ -14,10 +13,6 @@ export function TrendCards({ trend }: { trend: TrendFile }) {
       <div className="space-y-1">
         <h2 className="text-xl font-semibold tracking-tight">{t("trendTitle")}</h2>
         <p className="text-sm text-muted-foreground">{t("trendDescription")}</p>
-        <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
-          <InfoIcon className="mt-px size-3.5 shrink-0" aria-hidden />
-          {t("trendMethod")}
-        </p>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {trend.fuels.map((fuel) => (

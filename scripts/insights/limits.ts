@@ -1,4 +1,5 @@
-import { open, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { open, readFile, rm, stat } from "node:fs/promises";
+import { writeFileAtomic } from "./atomic";
 
 /**
  * Cost and abuse limits for the market brief job. The state lives in `data-cache/`, so the limits hold
@@ -11,8 +12,8 @@ export const LIMITS = {
   callsPerRun: 3,
   callsPerDay: 60,
   requestTimeoutMs: 60_000,
-  /** A lock older than this belongs to a crashed run. */
-  staleLockMs: 10 * 60_000,
+  /** A lock older than this belongs to a crashed job; the job (data refresh, then brief) runs every 30 min. */
+  staleLockMs: 25 * 60_000,
 } as const;
 
 export interface LimitState {
@@ -91,7 +92,7 @@ export async function readState(path: string): Promise<LimitState> {
 }
 
 export async function writeState(path: string, state: LimitState): Promise<void> {
-  await writeFile(path, `${JSON.stringify(state, null, 2)}\n`);
+  await writeFileAtomic(path, `${JSON.stringify(state, null, 2)}\n`);
 }
 
 /**

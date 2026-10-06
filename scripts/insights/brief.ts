@@ -4,7 +4,7 @@ import { FUELS } from "../../src/domain/fuels";
 /**
  * The structure the model must return, and the checks that decide whether it may be published.
  * Everything the model writes comes from untrusted news pages, so every string is checked for markup,
- * links, prompt-injection phrasing and the wrong language before it can reach `public/`.
+ * links, prompt-injection phrasing and text that is not French before it can reach `public/`.
  */
 
 const FORBIDDEN: { pattern: RegExp; reason: string }[] = [
@@ -36,36 +36,44 @@ const FORBIDDEN: { pattern: RegExp; reason: string }[] = [
 /** Latin script, digits, punctuation, spaces and the symbols a fuel brief needs. */
 const ALLOWED_CHARACTERS = /^[\p{Script=Latin}\p{N}\p{P}\p{Zs}€$£%°+±=<>~×−–—’‘“”«»]*$/u;
 
-const STOPWORDS = {
-  fr: new Set("le la les des du de un une et en sur pour dans par au aux est sont qui que avec ce cette ses leur plus".split(" ")),
-  en: new Set("the of and to in on for is are with by at from that this as be has have its their more will".split(" ")),
-};
+/**
+ * Function words only, so names and tickers (Brent, WTI, OPEC+, Fed, EIA) count for neither side.
+ * Words that are also French ("on", "as", "a", "in") are left out of the English list.
+ */
+const FRENCH_WORDS = new Set(
+  "le la les l d des du de un une et en sur pour dans par au aux est sont qui que avec ce cette ces ses son sa leur plus pas ne se il elle ils".split(
+    " ",
+  ),
+);
+const ENGLISH_WORDS = new Set("the of and to for is are with by at from that this be has have its their will was were".split(" "));
 
 /** Problems that make a string unpublishable; empty when it is safe. */
-export function textProblems(value: string, language?: "fr" | "en"): string[] {
+export function textProblems(value: string, french = false): string[] {
   const problems = FORBIDDEN.filter(({ pattern }) => pattern.test(value)).map(({ reason }) => reason);
   if (!ALLOWED_CHARACTERS.test(value)) problems.push("characters outside French/English text");
-  if (language) {
-    const words = value.toLowerCase().match(/[\p{L}']+/gu) ?? [];
-    if (words.length >= 6) {
-      const own = words.filter((w) => STOPWORDS[language].has(w)).length;
-      const other = words.filter((w) => STOPWORDS[language === "fr" ? "en" : "fr"].has(w)).length;
-      if (own === 0 || other > own) problems.push(`not ${language === "fr" ? "French" : "English"}`);
-    }
-  }
+  if (french && !looksFrench(value)) problems.push("not French");
   return problems;
 }
 
-const safeText = (max: number, language?: "fr" | "en") =>
+/** Short texts pass; longer ones need French function words and fewer English ones than French. */
+function looksFrench(value: string): boolean {
+  const words = value.toLowerCase().split(/[^\p{L}]+/u).filter(Boolean);
+  if (words.length < 6) return true;
+  const french = words.filter((w) => FRENCH_WORDS.has(w)).length;
+  const english = words.filter((w) => ENGLISH_WORDS.has(w)).length;
+  return french > 0 && english <= french;
+}
+
+const safeText = (max: number, french = false) =>
   z
     .string()
     .min(1)
     .max(max)
     .superRefine((value, ctx) => {
-      for (const problem of textProblems(value, language)) ctx.addIssue({ code: "custom", message: problem });
+      for (const problem of textProblems(value, french)) ctx.addIssue({ code: "custom", message: problem });
     });
 
-const localized = (max: number) => z.strictObject({ fr: safeText(max, "fr"), en: safeText(max, "en") });
+const frenchText = (max: number) => safeText(max, true);
 
 const direction = z.enum(["up", "stable", "down"]);
 const sourceId = z.string().regex(/^[A-Za-z0-9_-]{1,32}$/);
@@ -73,7 +81,7 @@ const sourceId = z.string().regex(/^[A-Za-z0-9_-]{1,32}$/);
 export const sourceSchema = z.strictObject({
   id: sourceId,
   title: safeText(120),
-  titleFr: safeText(120, "fr"),
+  titleFr: frenchText(120),
   publisher: safeText(60),
   url: z.string().max(2048),
   publishedAt: z
@@ -87,19 +95,19 @@ const fuelSchema = z.strictObject({
   direction,
   confidence: z.enum(["low", "medium", "high"]),
   horizonDays: z.int().min(3).max(10),
-  summary: localized(280),
+  summary: frenchText(280),
 });
 
 const driverSchema = z.strictObject({
-  title: localized(80),
+  title: frenchText(80),
   impact: z.enum(["up", "down", "neutral"]),
-  explanation: localized(240),
+  explanation: frenchText(240),
   sourceIds: z.array(sourceId).max(10),
 });
 
-/** What the model is asked to return. Also sent to the API as the JSON schema. */
+/** What the model is asked to return, all text in French. Also sent to the model as the JSON schema. */
 export const modelBriefSchema = z.strictObject({
-  headline: localized(120),
+  headline: frenchText(120),
   fuels: z.array(fuelSchema).min(1).max(FUELS.length),
   drivers: z.array(driverSchema).min(1).max(6),
   sources: z.array(sourceSchema).max(10),

@@ -98,7 +98,7 @@ describe("acquireLock", () => {
   it("takes over a lock left by a crashed run", async () => {
     const lock = path.join(await mkdtemp(path.join(tmpdir(), "jauge-lock-")), "insights.lock");
     await writeFile(lock, "{}");
-    const old = new Date(Date.now() - 11 * 60_000);
+    const old = new Date(Date.now() - 26 * 60_000);
     await utimes(lock, old, old);
     const release = await acquireLock(lock);
     expect(JSON.parse(await readFile(lock, "utf8")).pid).toBe(process.pid);

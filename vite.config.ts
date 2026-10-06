@@ -24,6 +24,7 @@ export default defineConfig({
   server: {
     port: 5174,
     host: true,
-    allowedHosts: [".trycloudflare.com"],
+    // Optional extra dev hosts, e.g. a tunnel: DEV_ALLOWED_HOSTS=".example.com" in .env.local
+    allowedHosts: (process.env.DEV_ALLOWED_HOSTS ?? "").split(",").map((h) => h.trim()).filter(Boolean),
   },
 });

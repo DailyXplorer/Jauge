@@ -38,7 +38,8 @@ const CONFIDENCE = {
 export function InsightsCard({ insights }: { insights: InsightsFile }) {
   const { t } = useI18n();
   const { brief } = insights;
-  const age = useNow() - Date.parse(insights.generatedAt);
+  const now = useNow();
+  const age = now - Date.parse(insights.generatedAt);
   const stale = insights.stale || age > STALE_AFTER_MS;
   const fuels = FUELS.flatMap((id) => brief.fuels.filter((f) => f.fuel === id));
   const sourcesById = new Map(brief.sources.map((s) => [s.id, s]));
@@ -64,7 +65,7 @@ export function InsightsCard({ insights }: { insights: InsightsFile }) {
       </CardHeader>
       <CardContent className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         <div className="space-y-4">
-          <p className="text-lg leading-snug font-medium text-pretty">{brief.headline.fr}</p>
+          <p className="text-lg leading-snug font-medium text-pretty">{brief.headline}</p>
           <ul className="divide-y rounded-lg border">
             {fuels.map((fuel) => (
               <FuelRow key={fuel.fuel} insight={fuel} />
@@ -76,7 +77,7 @@ export function InsightsCard({ insights }: { insights: InsightsFile }) {
             <h3 className="text-sm font-medium text-muted-foreground">{t("insightsDrivers")}</h3>
             <ul className="space-y-4">
               {brief.drivers.map((driver, index) => (
-                <DriverItem key={index} driver={driver} sources={sourcesById} />
+                <DriverItem key={index} driver={driver} sources={sourcesById} now={now} />
               ))}
             </ul>
           </section>
@@ -101,7 +102,7 @@ function FuelRow({ insight }: { insight: FuelInsight }) {
           {t(CONFIDENCE[insight.confidence])} · {t("insightsHorizon", { days: insight.horizonDays })}
         </span>
       </div>
-      <p className="text-sm leading-relaxed text-muted-foreground">{insight.summary.fr}</p>
+      <p className="text-sm leading-relaxed text-muted-foreground">{insight.summary}</p>
       {insight.conflictsWithPriceModel && insight.priceModelDirection && (
         <p className="flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-400">
           <WarningIcon weight="bold" className="size-3.5 shrink-0" aria-hidden />
@@ -124,7 +125,7 @@ function DirectionBadge({ direction, label }: { direction: TrendDirection; label
   );
 }
 
-function DriverItem({ driver, sources }: { driver: MarketDriver; sources: Map<string, NewsSource> }) {
+function DriverItem({ driver, sources, now }: { driver: MarketDriver; sources: Map<string, NewsSource>; now: number }) {
   const { t } = useI18n();
   const { icon: Icon, key, tone } = IMPACT[driver.impact];
   const cited = driver.sourceIds.flatMap((id) => sources.get(id) ?? []);
@@ -134,10 +135,15 @@ function DriverItem({ driver, sources }: { driver: MarketDriver; sources: Map<st
         <Icon weight="bold" className="size-4" aria-label={t(key)} />
       </span>
       <div className="min-w-0 space-y-1">
-        <p className="text-sm font-medium">{driver.title.fr}</p>
-        <p className="text-sm leading-relaxed text-muted-foreground">{driver.explanation.fr}</p>
-        {cited.length > 0 && (
+        <p className="text-sm font-medium">{driver.title}</p>
+        <p className="text-sm leading-relaxed text-muted-foreground">{driver.explanation}</p>
+        {(cited.length > 0 || driver.publishedAt) && (
           <p className="flex flex-wrap gap-x-2 text-xs">
+            {driver.publishedAt && (
+              <time dateTime={driver.publishedAt} className="text-muted-foreground/70">
+                {publishedDay(driver.publishedAt, now, t)}
+              </time>
+            )}
             {cited.map((source) => (
               <ExternalLink
                 key={source.id}
@@ -225,6 +231,16 @@ function dateTime(iso: string, dateOnly = false): string {
     month: "short",
     ...(dateOnly ? { timeZone: "UTC" } : { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" }),
   }).format(new Date(iso));
+}
+
+const parisDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" });
+
+/** "aujourd'hui", "hier" or a short date, by calendar day in Paris. A bare `YYYY-MM-DD` is that day. */
+function publishedDay(iso: string, now: number, t: ReturnType<typeof useI18n>["t"]): string {
+  const day = iso.length === 10 ? iso : parisDay.format(new Date(iso));
+  if (day === parisDay.format(now)) return t("insightsToday");
+  if (day === parisDay.format(now - 86_400_000)) return t("insightsYesterday");
+  return dateTime(day, true);
 }
 
 function relativeAge(ms: number): string {

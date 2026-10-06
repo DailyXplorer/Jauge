@@ -1,6 +1,6 @@
 #!/bin/sh
 # Installs a user LaunchAgent that refreshes the data and the AI market brief every 30 minutes:
-#   pnpm data:refresh && pnpm insights:run
+#   pnpm job    (data:refresh, then insights:run, under one lock)
 # Usage: scripts/install-launchd.sh            install or reinstall
 #        scripts/install-launchd.sh --uninstall
 set -eu
@@ -40,7 +40,7 @@ cat > "$PLIST" <<EOF
   <array>
     <string>/bin/sh</string>
     <string>-c</string>
-    <string>pnpm data:refresh &amp;&amp; pnpm insights:run</string>
+    <string>pnpm job</string>
   </array>
   <key>WorkingDirectory</key>
   <string>$DIR_XML</string>

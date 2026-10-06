@@ -137,12 +137,6 @@ export interface TrendFile {
   fuels: FuelTrend[];
 }
 
-/** A text the market brief job writes in both languages; the UI only shows `fr`. */
-export interface Localized {
-  fr: string;
-  en: string;
-}
-
 export type InsightConfidence = "low" | "medium" | "high";
 export type DriverImpact = "up" | "down" | "neutral";
 
@@ -151,7 +145,7 @@ export interface FuelInsight {
   direction: TrendDirection;
   confidence: InsightConfidence;
   horizonDays: number;
-  summary: Localized;
+  summary: string;
   /** The numeric trend's direction when the brief was written. */
   priceModelDirection: TrendDirection | null;
   /** The AI view disagrees with the price model with high confidence; the UI shows both. */
@@ -159,10 +153,12 @@ export interface FuelInsight {
 }
 
 export interface MarketDriver {
-  title: Localized;
+  title: string;
   impact: DriverImpact;
-  explanation: Localized;
+  explanation: string;
   sourceIds: string[];
+  /** Publication time of the newest cited source, set by the job from the sources, never by the model. */
+  publishedAt?: string;
 }
 
 export interface NewsSource {
@@ -177,8 +173,9 @@ export interface NewsSource {
   publishedAt: string | null;
 }
 
+/** Every text is French, except each source's original `title`. */
 export interface MarketBrief {
-  headline: Localized;
+  headline: string;
   fuels: FuelInsight[];
   drivers: MarketDriver[];
   sources: NewsSource[];

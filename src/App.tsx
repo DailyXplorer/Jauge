@@ -46,7 +46,7 @@ function Header() {
       <div className="relative mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3 sm:px-6">
         <Link to="/" className="flex items-center gap-2 text-foreground">
           <LogoMark className="size-6" />
-          <span className="text-lg leading-none font-medium tracking-tighter">jauge</span>
+          <span className="text-lg leading-none font-medium tracking-tighter">Jauge</span>
         </Link>
         <div className="order-last w-full lg:absolute lg:top-1/2 lg:left-1/2 lg:w-[420px] lg:-translate-x-1/2 lg:-translate-y-1/2">
           <Suspense fallback={<Skeleton className="h-9 w-full" />}>

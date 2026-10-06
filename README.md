@@ -17,12 +17,7 @@ Six fuels: Gazole, SP95, E10, SP98, E85, GPLc. French-only UI, light and dark mo
 pnpm install && pnpm data:build && pnpm dev
 ```
 
-The dev server listens on http://localhost:5174 and on your LAN (`server.host: true`). Hosts under
-`.trycloudflare.com` are allowed, so a Cloudflare quick tunnel works:
-
-```sh
-cloudflared tunnel --url http://localhost:5174
-```
+The dev server listens on http://localhost:5174 and on your LAN (`server.host: true`).
 
 Other scripts:
 
@@ -31,6 +26,7 @@ Other scripts:
 | `pnpm data:build`   | Downloads all sources (cached in `data-cache/`) and writes `public/data/`.   |
 | `pnpm data:refresh` | Keeps the cached yearly archives, fetches recent days, the instant feed and market data, then rebuilds. |
 | `pnpm insights:run` | Writes the AI market brief to `public/data/insights.json` (needs a Mistral key). |
+| `pnpm job`          | `data:refresh`, then `insights:run`, under one lock. What the LaunchAgent runs. |
 | `pnpm build`        | Type-checks and builds the static site into `dist/`, then runs `check:secrets`. |
 | `pnpm check:secrets`| Fails if the Mistral key could leak into `dist/`, `public/`, git or `src/`.  |
 | `pnpm test`         | Vitest unit tests.                                                           |
@@ -120,14 +116,21 @@ last week's direction, the R², and the chosen delay and window.
 
 ## AI market brief
 
-Every 30 minutes, a local job asks Mistral to read the fuel market news (Brent and OPEC+, refinery outages and strikes, crack spreads, EUR/USD, TICPE, supply
-risks) and explain in French and English why pump prices may go up or down over the next 3 to 10
-days. The site only displays the stored result, in the "Why prices are moving" card on the overview.
+Every 30 minutes, a local job asks Mistral one question: what could move French pump prices today,
+and where they are likely to go over the next 3 to 10 days. The brief is written in French only. It
+is built on news from the last 24 hours, with up to 72 hours as context, and covers the macro
+drivers when they are in the news: Brent and WTI, OPEC+, US, China and euro area data (inflation,
+PMI, growth), Fed and ECB decisions, EUR/USD, refinery outages and strikes, crack spreads, EIA and
+API stocks, Hormuz, the Red Sea, Russia sanctions, and French taxes or rebates. When nothing
+material happened, the headline says "Rien de nouveau aujourd'hui" and every fuel is stable with low
+confidence. The site only displays the stored result, in the "Pourquoi les prix bougent" card on
+the overview, with each driver dated "aujourd'hui", "hier" or by its date.
 
-The news comes from two paths. By default, the job fetches a fixed allowlist of RSS feeds
-(`scripts/insights/feeds.ts`: Connaissance des Énergies, OilPrice.com, U.S. EIA, and two fixed
-Google News searches in French and English) and passes their titles and summaries to the model as
-untrusted data, with no tool enabled. Mistral's built-in `web_search` is limited to 20 searches per
+The news comes from two paths. By default, the job fetches a fixed allowlist of 10 RSS feeds
+(`scripts/insights/feeds.ts`: Connaissance des Énergies, OilPrice.com, Rigzone, U.S. EIA, CNBC
+Energy and Economy, ECB press releases, and three fixed Google News searches), keeps items
+published in the last 72 hours (newest first, at most 60 items and 24,000 characters), and passes
+their titles and summaries to the model as untrusted data, with no tool enabled. Mistral's built-in `web_search` is limited to 20 searches per
 day and 3 per minute on this account (from the `x-ratelimit-*-web-search-*` headers), so it is used
 at most once every 2 hours and only while more than 2 searches remain today. A `web_search` quota
 error falls back to the feeds in the same run. The Conversations API is used for both paths,
@@ -135,8 +138,11 @@ because this account's chat completions endpoint allows 0 requests per minute.
 
 ```sh
 cp .env.example .env    # then set the key in .env
+chmod 600 .env          # the job refuses to run otherwise
 pnpm insights:run
 ```
+
+The job reads only the three variables below from `.env`, and nothing else in it.
 
 | Variable | Default | |
 | -------- | ------- | - |
@@ -153,26 +159,39 @@ pnpm insights:run
   search results.
 - **News pages are untrusted.** The prompt says web content is data, never instructions. The answer is
   parsed as JSON and checked with a strict zod schema (`scripts/insights/brief.ts`): length caps,
-  enums, French text in `fr` fields and source `titleFr` and English in `en` fields, Latin script only. Any HTML, markdown,
+  enums, French text everywhere except each source's original title, Latin script only. The French
+  check counts function words, so names and tickers such as Brent, WTI, OPEC+ or Fed pass. Any HTML, markdown,
   link, script, prompt-injection phrasing, call to action, or mention of prompts, the system or keys
   rejects the whole brief. A source whose URL is not https or was not returned by the search tool is
   dropped. If two attempts fail, the previous brief is kept and marked stale. Raw model text is never
   published.
+- **Outbound allowlist.** Every request goes through `createSafeFetch` (`scripts/insights/net.ts`),
+  also plugged into the Mistral SDK as its fetcher: https only, exact hosts (`api.mistral.ai` for the
+  API, the feed hosts for the feeds), redirects followed only to those hosts, a 2 MB body cap, no
+  cookies sent or kept, and a 10 s timeout for feeds. API calls keep a 60 s timeout because measured
+  calls take 13 to 55 s.
+- **`.env` stays private.** The job refuses to run when `.env` is readable by the group or others,
+  and prints the `chmod 600` that fixes it. The data refresh runs as a child process without the
+  Mistral variables in its environment.
+- **Atomic publishing.** `insights.json` and the limit state are written to a temporary file in the
+  same directory, flushed, then renamed, so the site never reads a half-written file. On any failure
+  the previous file stays as it was.
 - **JSON is enforced by validation, not by the API.** Combining `response_format` (`json_schema` or
   `json_object`) with `web_search` never returned within 75–90 s when tested on 2026-10-06, so the
   schema is in the prompt and the validator is the gate.
 - **The numbers win.** The brief never overwrites the numeric trend. When the AI disagrees with the
   price model with high confidence, the card shows both, labelled "AI view" and "Price model".
 - **Limits.** One run per 30-minute slot (a run starting less than 28 minutes after the previous one
-  exits; the slack absorbs scheduling jitter), a lock file so a concurrent run exits, at most 3 API
+  exits with code 0; the slack absorbs scheduling jitter), one lock file for `pnpm job` and
+  `pnpm insights:run` so a concurrent run exits with code 0, at most 3 API
   calls per run and 60 per UTC day, and a 60 s request timeout. A rate-limit or auth error ends the
   run, except a `web_search` quota error, which falls back to the feeds. State is in
   `data-cache/insights-state.json`.
 - **Logs hold metadata only**: time, model, duration, token counts, searches, ok or error kind, in
-  `data-cache/insights.log`.
+  `data-cache/insights.log`. API errors are logged by status only, never with their body, and every
+  console or file line is redacted of the key and of anything shaped like a key or an auth header.
 - **The UI renders plain text** through React, with no `dangerouslySetInnerHTML`. Links open with
-  `rel="noopener noreferrer nofollow"`. The card says "Generated by AI from news on … — may be wrong"
-  and turns to "Outdated" after 2 hours.
+  `rel="noopener noreferrer nofollow"`. The card's age badge turns to "Pas à jour" after 2 hours.
 - `pnpm check:secrets` runs after every build.
 
 A run makes one API call when the first answer validates. Measured on 2026-10-06 with
@@ -188,7 +207,7 @@ scripts/install-launchd.sh --uninstall
 ```
 
 This installs the user LaunchAgent `~/Library/LaunchAgents/io.jauge.insights.plist`. It runs
-`pnpm data:refresh && pnpm insights:run` from the project directory every 1,800 s and at login, with
+`pnpm job` from the project directory every 1,800 s and at login, with
 its output in `data-cache/launchd.out.log` and `data-cache/launchd.err.log`. Static hosting must then
 redeploy `public/data/insights.json` to publish each new brief.
 
