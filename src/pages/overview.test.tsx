@@ -31,4 +31,6 @@ test("the overview renders in French with the AI brief from public/data/insights
   expect(html).toContain(escape(insights.brief.drivers[0].title.fr));
   expect(html).not.toContain(escape(insights.brief.headline.en));
   expect(html).not.toContain("Likely");
+  expect(html).toContain(`aria-expanded="false"`);
+  expect(html).toContain(`Sources (${insights.brief.sources.length})`);
 });

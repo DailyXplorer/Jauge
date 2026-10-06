@@ -1,16 +1,18 @@
 import {
   ArrowSquareOutIcon,
+  CaretDownIcon,
   MinusIcon,
   SparkleIcon,
   TrendDownIcon,
   TrendUpIcon,
   WarningIcon,
 } from "@phosphor-icons/react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import { FUEL_INFO, FUELS } from "@/domain/fuels";
 import type { DriverImpact, FuelInsight, InsightsFile, MarketDriver, NewsSource, TrendDirection } from "@/domain/schema";
 import { DIRECTION } from "@/components/direction";
 import { FuelDot } from "@/components/fuel-picker";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LOCALE, useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -78,16 +80,7 @@ export function InsightsCard({ insights }: { insights: InsightsFile }) {
               ))}
             </ul>
           </section>
-          {brief.sources.length > 0 && (
-            <section className="space-y-3">
-              <h3 className="text-sm font-medium text-muted-foreground">{t("insightsSources")}</h3>
-              <ul className="space-y-2">
-                {brief.sources.map((source) => (
-                  <SourceItem key={source.id} source={source} />
-                ))}
-              </ul>
-            </section>
-          )}
+          {brief.sources.length > 0 && <SourceList sources={brief.sources} />}
         </div>
       </CardContent>
     </Card>
@@ -146,7 +139,11 @@ function DriverItem({ driver, sources }: { driver: MarketDriver; sources: Map<st
         {cited.length > 0 && (
           <p className="flex flex-wrap gap-x-2 text-xs">
             {cited.map((source) => (
-              <ExternalLink key={source.id} href={source.url} className="text-muted-foreground underline-offset-2 hover:underline">
+              <ExternalLink
+                key={source.id}
+                href={source.url}
+                className="text-muted-foreground/70 underline-offset-2 hover:text-muted-foreground hover:underline"
+              >
                 {source.publisher}
               </ExternalLink>
             ))}
@@ -157,17 +154,47 @@ function DriverItem({ driver, sources }: { driver: MarketDriver; sources: Map<st
   );
 }
 
+function SourceList({ sources }: { sources: NewsSource[] }) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  const listId = useId();
+  return (
+    <section className="space-y-1.5">
+      <Button
+        variant="ghost"
+        size="xs"
+        aria-expanded={open}
+        aria-controls={listId}
+        onClick={() => setOpen((value) => !value)}
+        className="-ml-1.5 text-muted-foreground"
+      >
+        {`${t("insightsSources")} (${sources.length})`}
+        <CaretDownIcon weight="bold" className={cn("transition-transform", open && "rotate-180")} aria-hidden />
+      </Button>
+      {/* `hidden` rather than unmounting keeps the cited links in the prerendered HTML. */}
+      <ul id={listId} hidden={!open} className="space-y-1.5">
+        {sources.map((source) => (
+          <SourceItem key={source.id} source={source} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function SourceItem({ source }: { source: NewsSource }) {
+  const title = source.title;
   return (
     <li className="text-sm">
-      <ExternalLink href={source.url} className="group inline-flex items-start gap-1.5 hover:text-foreground">
-        <span className="underline-offset-2 group-hover:underline">{source.title}</span>
-        <ArrowSquareOutIcon className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+      <ExternalLink href={source.url} className="group flex min-w-0 items-center gap-1.5">
+        <span title={title} className="truncate underline-offset-2 group-hover:underline">
+          {title}
+        </span>
+        <span className="shrink-0 text-xs whitespace-nowrap text-muted-foreground">
+          {source.publisher}
+          {source.publishedAt && ` · ${dateTime(source.publishedAt, source.publishedAt.length === 10)}`}
+        </span>
+        <ArrowSquareOutIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
       </ExternalLink>
-      <span className="block text-xs text-muted-foreground">
-        {source.publisher}
-        {source.publishedAt && ` · ${dateTime(source.publishedAt, source.publishedAt.length === 10)}`}
-      </span>
     </li>
   );
 }
