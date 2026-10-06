@@ -182,7 +182,7 @@ function SourceList({ sources }: { sources: NewsSource[] }) {
 }
 
 function SourceItem({ source }: { source: NewsSource }) {
-  const title = source.title;
+  const title = source.titleFr ?? source.title;
   return (
     <li className="text-sm">
       <ExternalLink href={source.url} className="group flex min-w-0 items-center gap-1.5">

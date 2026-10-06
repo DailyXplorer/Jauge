@@ -73,6 +73,7 @@ const sourceId = z.string().regex(/^[A-Za-z0-9_-]{1,32}$/);
 export const sourceSchema = z.strictObject({
   id: sourceId,
   title: safeText(120),
+  titleFr: safeText(120, "fr"),
   publisher: safeText(60),
   url: z.string().max(2048),
   publishedAt: z

@@ -39,11 +39,11 @@ Output: one JSON object and nothing else, no code fence, matching this JSON sche
 ${JSON.stringify(briefJsonSchema())}
 
 Hard length limits, in characters, counted separately for "fr" and "en"; answers over a limit are discarded, so stay well under them:
-- headline: 100. fuels[].summary: 220. drivers[].title: 60. drivers[].explanation: 200. sources[].title: 110. sources[].publisher: 50.
+- headline: 100. fuels[].summary: 220. drivers[].title: 60. drivers[].explanation: 200. sources[].title: 110. sources[].titleFr: 110. sources[].publisher: 50.
 - At most 6 drivers and at most 8 sources. Be concise: short sentences, one idea each.
 
 - Every "fr" field is in French and every "en" field is in English, with the same meaning.
-- sources: ${sources}, and its url and title exactly. "publisher" is the outlet name. "publishedAt" is an ISO date or null.
+- sources: ${sources}, and its url and title exactly. "titleFr" is that title in French: translate it, or copy it if it is already French. "publisher" is the outlet name. "publishedAt" is an ISO date or null.
 - drivers[].sourceIds lists ids from sources.`;
 
 export interface Attempt {

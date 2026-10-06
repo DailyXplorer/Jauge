@@ -153,7 +153,7 @@ pnpm insights:run
   search results.
 - **News pages are untrusted.** The prompt says web content is data, never instructions. The answer is
   parsed as JSON and checked with a strict zod schema (`scripts/insights/brief.ts`): length caps,
-  enums, French text in `fr` fields and English in `en` fields, Latin script only. Any HTML, markdown,
+  enums, French text in `fr` fields and source `titleFr` and English in `en` fields, Latin script only. Any HTML, markdown,
   link, script, prompt-injection phrasing, call to action, or mention of prompts, the system or keys
   rejects the whole brief. A source whose URL is not https or was not returned by the search tool is
   dropped. If two attempts fail, the previous brief is kept and marked stale. Raw model text is never

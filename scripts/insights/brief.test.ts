@@ -36,6 +36,7 @@ function brief(): ModelBrief {
       {
         id: "s1",
         title: "OPEC+ agrees to keep November oil output targets steady",
+        titleFr: "L'OPEP+ maintient ses objectifs de production de pétrole pour novembre",
         publisher: "Reuters",
         url: "https://www.reuters.com/business/energy/opec-holds-output-2026-10-04/",
         publishedAt: "2026-10-04",
@@ -153,6 +154,26 @@ describe("validateBrief", () => {
     value.sources[0].title = "<strong>OPEC+</strong> holds output";
     const result = validate(value);
     expect(result.ok && result.dropped).toEqual(["sources.0: title: HTML"]);
+  });
+
+  it("drops a source whose French title is missing, too long or not French", () => {
+    const value = brief();
+    const source = value.sources[0];
+    const untranslated: Partial<typeof source> = { ...source };
+    delete untranslated.titleFr;
+    const result = validate({
+      ...value,
+      sources: [
+        { ...source, id: "s1", titleFr: "OPEC+ agrees to keep November oil output targets steady" },
+        { ...source, id: "s2", titleFr: `L'OPEP+ maintient sa production ${"a".repeat(100)}` },
+        { ...untranslated, id: "s3" },
+      ],
+    });
+    expect(result.ok && result.dropped).toEqual([
+      "sources.0: titleFr: not French",
+      "sources.1: titleFr: Too big: expected string to have <=120 characters",
+      "sources.2: titleFr: Invalid input: expected string, received undefined",
+    ]);
   });
 
   it("rejects text that is not JSON", () => {

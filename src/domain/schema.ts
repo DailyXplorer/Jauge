@@ -167,7 +167,10 @@ export interface MarketDriver {
 
 export interface NewsSource {
   id: string;
+  /** As published, often in English. */
   title: string;
+  /** Missing in briefs written before French titles were added. */
+  titleFr?: string;
   publisher: string;
   /** Always https and always one of the URLs the search tool returned. */
   url: string;
