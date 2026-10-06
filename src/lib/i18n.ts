@@ -28,7 +28,6 @@ const fr = {
     "Régression linéaire sur les derniers mouvements du Brent en € et la variation à la pompe de la semaine passée. Elle peut se tromper.",
   insightsTitle: "Pourquoi les prix bougent",
   insightsAiView: "Avis de l'IA",
-  insightsGenerated: "Généré par IA à partir de l'actualité du {time} — peut se tromper.",
   insightsStale: "Pas à jour, {age}",
   insightsFresh: "Mis à jour {age}",
   insightsHorizon: "{days} j",

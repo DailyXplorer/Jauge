@@ -11,7 +11,7 @@ import { FUEL_INFO, FUELS } from "@/domain/fuels";
 import type { DriverImpact, FuelInsight, InsightsFile, MarketDriver, NewsSource, TrendDirection } from "@/domain/schema";
 import { DIRECTION } from "@/components/direction";
 import { FuelDot } from "@/components/fuel-picker";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LOCALE, useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -59,7 +59,6 @@ export function InsightsCard({ insights }: { insights: InsightsFile }) {
             {t(stale ? "insightsStale" : "insightsFresh", { age: relativeAge(age) })}
           </span>
         </div>
-        <CardDescription>{t("insightsGenerated", { time: dateTime(insights.generatedAt) })}</CardDescription>
       </CardHeader>
       <CardContent className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         <div className="space-y-4">
