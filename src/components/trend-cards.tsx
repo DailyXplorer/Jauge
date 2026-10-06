@@ -1,0 +1,80 @@
+import { ArrowDownRightIcon, ArrowRightIcon, ArrowUpRightIcon, InfoIcon } from "@phosphor-icons/react";
+import { FUEL_INFO } from "@/domain/fuels";
+import type { FuelTrend, TrendDirection, TrendFile } from "@/domain/schema";
+import { FuelDot } from "@/components/fuel-picker";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Link } from "@/components/link";
+import { useI18n } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
+
+const DIRECTION = {
+  up: { icon: ArrowUpRightIcon, key: "trendUp", tone: "text-up bg-up/10" },
+  down: { icon: ArrowDownRightIcon, key: "trendDown", tone: "text-down bg-down/10" },
+  stable: { icon: ArrowRightIcon, key: "trendStable", tone: "text-muted-foreground bg-muted" },
+} as const satisfies Record<TrendDirection, unknown>;
+
+export function TrendCards({ trend }: { trend: TrendFile }) {
+  const { t } = useI18n();
+  return (
+    <section className="space-y-4">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-1">
+          <h2 className="text-xl font-semibold tracking-tight">{t("trendTitle")}</h2>
+          <p className="text-sm text-muted-foreground">{t("trendDescription")}</p>
+        </div>
+        <Link to="/about" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          <InfoIcon className="size-4" aria-hidden />
+          {t("aboutTrendTitle")}
+        </Link>
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {trend.fuels.map((fuel) => (
+          <TrendCard key={fuel.fuel} trend={fuel} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function TrendCard({ trend }: { trend: FuelTrend }) {
+  const { t, cents, percent, date } = useI18n();
+  const direction = DIRECTION[trend.direction];
+  const Icon = direction.icon;
+  const brentKey =
+    Math.abs(trend.brentChangePct) < 1 ? "trendBrentFlat" : trend.brentChangePct < 0 ? "trendBrentFell" : "trendBrentRose";
+  const explanation = `${t(brentKey, {
+    pct: percent(Math.abs(trend.brentChangePct), false),
+    window: trend.windowDays,
+    date: date(trend.brentWindowEnd),
+  })}; ${t("trendFollow", { lag: trend.lagDays })}`;
+
+  return (
+    <Card className="gap-4">
+      <CardHeader className="flex flex-row items-center justify-between gap-2">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <FuelDot fuel={trend.fuel} />
+          {FUEL_INFO[trend.fuel].label}
+        </CardTitle>
+        <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium", direction.tone)}>
+          <Icon weight="bold" className="size-3.5" aria-hidden />
+          {t(direction.key)}
+        </span>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex items-baseline gap-2">
+          <span className="text-2xl font-semibold tracking-tight tabular-nums">{cents(trend.expectedChangeCents)}</span>
+          <span className="text-sm text-muted-foreground tabular-nums">± {cents(trend.bandCents, false)} / L</span>
+          <span className="ml-auto text-xs text-muted-foreground tabular-nums">
+            {t("trendConfidence", { p: Math.round(trend.probability * 100) })}
+          </span>
+        </div>
+        <CardDescription className="leading-relaxed">
+          {explanation} {t("trendLastWeek", { change: cents(trend.lastWeekChangeCents) })}
+        </CardDescription>
+        <p className="text-xs text-muted-foreground">
+          {t("trendHitRate", { rate: percent(trend.backtest.hitRate * 100, false, 0) })}
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
