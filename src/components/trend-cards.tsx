@@ -4,7 +4,6 @@ import type { FuelTrend, TrendFile } from "@/domain/schema";
 import { DIRECTION } from "@/components/direction";
 import { FuelDot } from "@/components/fuel-picker";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Link } from "@/components/link";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -12,15 +11,13 @@ export function TrendCards({ trend }: { trend: TrendFile }) {
   const { t } = useI18n();
   return (
     <section className="space-y-4">
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-1">
-          <h2 className="text-xl font-semibold tracking-tight">{t("trendTitle")}</h2>
-          <p className="text-sm text-muted-foreground">{t("trendDescription")}</p>
-        </div>
-        <Link to="/about" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-          <InfoIcon className="size-4" aria-hidden />
-          {t("aboutTrendTitle")}
-        </Link>
+      <div className="space-y-1">
+        <h2 className="text-xl font-semibold tracking-tight">{t("trendTitle")}</h2>
+        <p className="text-sm text-muted-foreground">{t("trendDescription")}</p>
+        <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+          <InfoIcon className="mt-px size-3.5 shrink-0" aria-hidden />
+          {t("trendMethod")}
+        </p>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {trend.fuels.map((fuel) => (

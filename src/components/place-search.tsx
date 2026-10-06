@@ -95,13 +95,13 @@ export function PlaceSearch({ meta }: { meta: Meta }) {
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="h-9 w-full justify-start gap-2 font-normal text-muted-foreground sm:w-72"
+          className="h-9 w-full justify-start gap-2 font-normal text-muted-foreground"
         >
           <MagnifyingGlassIcon className="size-4" aria-hidden />
           <span className="truncate">{t("searchButton")}</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[min(24rem,calc(100vw-2rem))] p-0" align="end">
+      <PopoverContent className="w-(--radix-popover-trigger-width) p-0">
         <Command shouldFilter={false}>
           <CommandInput placeholder={t("searchPlaceholder")} value={query} onValueChange={setQuery} />
           <CommandList className="max-h-80">

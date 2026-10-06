@@ -105,8 +105,9 @@ national daily average:
    29 Sep; pump prices usually follow within ~10 days."
 
 The backtest is walk-forward over the last year. Each day, the model is refitted using only data
-available that day, and its direction is compared with what happened 7 days later. The About page
-shows the hit rate next to a naive baseline that repeats last week's direction.
+available that day, and its direction is compared with what happened 7 days later. Each trend card
+shows that hit rate. `public/data/trend.json` also stores, per fuel, a naive baseline that repeats
+last week's direction, the R², and the chosen delay and window.
 
 ### Limits
 

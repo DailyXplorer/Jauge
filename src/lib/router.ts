@@ -4,7 +4,6 @@ export type PlaceKind = "region" | "department" | "city";
 
 export type Route =
   | { page: "overview" }
-  | { page: "about" }
   | { page: "place"; kind: PlaceKind; code: string }
   | { page: "notFound" };
 
@@ -13,7 +12,6 @@ const PLACE_KINDS: PlaceKind[] = ["region", "department", "city"];
 export function parseRoute(pathname: string): Route {
   const parts = pathname.split("/").filter(Boolean);
   if (parts.length === 0) return { page: "overview" };
-  if (parts.length === 1 && parts[0] === "about") return { page: "about" };
   if (parts.length === 2 && PLACE_KINDS.includes(parts[0] as PlaceKind)) {
     return { page: "place", kind: parts[0] as PlaceKind, code: decodeURIComponent(parts[1]) };
   }
