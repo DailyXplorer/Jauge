@@ -12,15 +12,15 @@ import type { DriverImpact, FuelInsight, InsightsFile, MarketDriver, NewsSource,
 import { DIRECTION } from "@/components/direction";
 import { FuelDot } from "@/components/fuel-picker";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useI18n, type Locale } from "@/lib/i18n";
+import { LOCALE, useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const STALE_AFTER_MS = 2 * 3_600_000;
 
 const IMPACT = {
-  up: { icon: TrendUpIcon, tone: "text-up bg-up/10" },
-  down: { icon: TrendDownIcon, tone: "text-down bg-down/10" },
-  neutral: { icon: MinusIcon, tone: "text-muted-foreground bg-muted" },
+  up: { icon: TrendUpIcon, key: "insightsImpactUp", tone: "text-up bg-up/10" },
+  down: { icon: TrendDownIcon, key: "insightsImpactDown", tone: "text-down bg-down/10" },
+  neutral: { icon: MinusIcon, key: "insightsImpactNeutral", tone: "text-muted-foreground bg-muted" },
 } as const satisfies Record<DriverImpact, unknown>;
 
 const CONFIDENCE = {
@@ -34,7 +34,7 @@ const CONFIDENCE = {
  * React text; links only ever point at the https URLs the job checked against the search results.
  */
 export function InsightsCard({ insights }: { insights: InsightsFile }) {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const { brief } = insights;
   const age = useNow() - Date.parse(insights.generatedAt);
   const stale = insights.stale || age > STALE_AFTER_MS;
@@ -56,14 +56,14 @@ export function InsightsCard({ insights }: { insights: InsightsFile }) {
             )}
           >
             {stale && <WarningIcon weight="bold" className="size-3.5" aria-hidden />}
-            {t(stale ? "insightsStale" : "insightsFresh", { age: relativeAge(age, locale) })}
+            {t(stale ? "insightsStale" : "insightsFresh", { age: relativeAge(age) })}
           </span>
         </div>
-        <CardDescription>{t("insightsGenerated", { time: dateTime(insights.generatedAt, locale) })}</CardDescription>
+        <CardDescription>{t("insightsGenerated", { time: dateTime(insights.generatedAt) })}</CardDescription>
       </CardHeader>
       <CardContent className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         <div className="space-y-4">
-          <p className="text-lg leading-snug font-medium text-pretty">{brief.headline[locale]}</p>
+          <p className="text-lg leading-snug font-medium text-pretty">{brief.headline.fr}</p>
           <ul className="divide-y rounded-lg border">
             {fuels.map((fuel) => (
               <FuelRow key={fuel.fuel} insight={fuel} />
@@ -96,7 +96,7 @@ export function InsightsCard({ insights }: { insights: InsightsFile }) {
 }
 
 function FuelRow({ insight }: { insight: FuelInsight }) {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   return (
     <li className="space-y-1.5 p-3">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -109,7 +109,7 @@ function FuelRow({ insight }: { insight: FuelInsight }) {
           {t(CONFIDENCE[insight.confidence])} · {t("insightsHorizon", { days: insight.horizonDays })}
         </span>
       </div>
-      <p className="text-sm leading-relaxed text-muted-foreground">{insight.summary[locale]}</p>
+      <p className="text-sm leading-relaxed text-muted-foreground">{insight.summary.fr}</p>
       {insight.conflictsWithPriceModel && insight.priceModelDirection && (
         <p className="flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-400">
           <WarningIcon weight="bold" className="size-3.5 shrink-0" aria-hidden />
@@ -133,17 +133,17 @@ function DirectionBadge({ direction, label }: { direction: TrendDirection; label
 }
 
 function DriverItem({ driver, sources }: { driver: MarketDriver; sources: Map<string, NewsSource> }) {
-  const { locale } = useI18n();
-  const { icon: Icon, tone } = IMPACT[driver.impact];
+  const { t } = useI18n();
+  const { icon: Icon, key, tone } = IMPACT[driver.impact];
   const cited = driver.sourceIds.flatMap((id) => sources.get(id) ?? []);
   return (
     <li className="flex gap-3">
       <span className={cn("mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full", tone)}>
-        <Icon weight="bold" className="size-4" aria-label={driver.impact} />
+        <Icon weight="bold" className="size-4" aria-label={t(key)} />
       </span>
       <div className="min-w-0 space-y-1">
-        <p className="text-sm font-medium">{driver.title[locale]}</p>
-        <p className="text-sm leading-relaxed text-muted-foreground">{driver.explanation[locale]}</p>
+        <p className="text-sm font-medium">{driver.title.fr}</p>
+        <p className="text-sm leading-relaxed text-muted-foreground">{driver.explanation.fr}</p>
         {cited.length > 0 && (
           <p className="flex flex-wrap gap-x-2 text-xs">
             {cited.map((source) => (
@@ -159,7 +159,6 @@ function DriverItem({ driver, sources }: { driver: MarketDriver; sources: Map<st
 }
 
 function SourceItem({ source }: { source: NewsSource }) {
-  const { locale } = useI18n();
   return (
     <li className="text-sm">
       <ExternalLink href={source.url} className="group inline-flex items-start gap-1.5 hover:text-foreground">
@@ -168,7 +167,7 @@ function SourceItem({ source }: { source: NewsSource }) {
       </ExternalLink>
       <span className="block text-xs text-muted-foreground">
         {source.publisher}
-        {source.publishedAt && ` · ${dateTime(source.publishedAt, locale, source.publishedAt.length === 10)}`}
+        {source.publishedAt && ` · ${dateTime(source.publishedAt, source.publishedAt.length === 10)}`}
       </span>
     </li>
   );
@@ -194,16 +193,16 @@ function useNow(): number {
   return now;
 }
 
-function dateTime(iso: string, locale: Locale, dateOnly = false): string {
-  return new Intl.DateTimeFormat(locale === "fr" ? "fr-FR" : "en-GB", {
+function dateTime(iso: string, dateOnly = false): string {
+  return new Intl.DateTimeFormat(LOCALE, {
     day: "numeric",
     month: "short",
     ...(dateOnly ? { timeZone: "UTC" } : { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" }),
   }).format(new Date(iso));
 }
 
-function relativeAge(ms: number, locale: Locale): string {
-  const format = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+function relativeAge(ms: number): string {
+  const format = new Intl.RelativeTimeFormat(LOCALE, { numeric: "auto" });
   const minutes = Math.max(0, Math.round(ms / 60_000));
   if (minutes < 60) return format.format(-minutes, "minute");
   const hours = Math.round(minutes / 60);

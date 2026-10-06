@@ -115,7 +115,7 @@ function PlaceView({ place, series }: { place: Place; series: DailySeries | null
   return (
     <div className="space-y-10">
       <header className="space-y-3">
-        <nav className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground" aria-label="Breadcrumb">
+        <nav className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground" aria-label={t("breadcrumb")}>
           <Link to="/" className="hover:text-foreground">
             France
           </Link>

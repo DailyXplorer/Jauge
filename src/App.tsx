@@ -4,9 +4,8 @@ import { ErrorBoundary, PageSkeleton } from "@/components/loading";
 import { PlaceSearch } from "@/components/place-search";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useMeta } from "@/lib/data";
-import { useI18n, type Locale } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
 import { Link } from "@/components/link";
 import { parseRoute, usePathname } from "@/lib/router";
 import { NotFoundPage } from "@/pages/not-found";
@@ -56,12 +55,11 @@ function Header() {
         </div>
         <div className="ml-auto flex items-center gap-2">
           <Button variant="outline" size="sm" asChild>
-            <a href={REPO_URL} target="_blank" rel="noopener noreferrer" aria-label={t("githubStar")}>
+            <a href={REPO_URL} target="_blank" rel="noopener noreferrer" aria-label={t("githubStarLabel")}>
               <GithubLogoIcon aria-hidden />
-              Star
+              {t("githubStar")}
             </a>
           </Button>
-          <LocaleSwitch />
           <ThemeToggle />
         </div>
       </div>
@@ -89,27 +87,6 @@ function LogoMark({ className }: { className?: string }) {
       <path d="M12 13l4-4" />
       <circle cx="12" cy="13" r="1" fill="currentColor" />
     </svg>
-  );
-}
-
-function LocaleSwitch() {
-  const { locale, setLocale } = useI18n();
-  return (
-    <ToggleGroup
-      type="single"
-      size="sm"
-      variant="outline"
-      value={locale}
-      onValueChange={(next) => next && setLocale(next as Locale)}
-      aria-label="Language"
-    >
-      <ToggleGroupItem value="en" className="px-2.5 text-xs">
-        EN
-      </ToggleGroupItem>
-      <ToggleGroupItem value="fr" className="px-2.5 text-xs">
-        FR
-      </ToggleGroupItem>
-    </ToggleGroup>
   );
 }
 
@@ -143,7 +120,7 @@ function Footer() {
               rel="noopener noreferrer"
               className="underline-offset-4 hover:text-foreground hover:underline"
             >
-              MIT License
+              {t("footerLicence")}
             </a>
           </p>
           <p className="text-xs text-muted-foreground/70">{t("footerAttribution")}</p>

@@ -137,7 +137,7 @@ export interface TrendFile {
   fuels: FuelTrend[];
 }
 
-/** A text the market brief job writes in both UI languages. */
+/** A text the market brief job writes in both languages; the UI only shows `fr`. */
 export interface Localized {
   fr: string;
   en: string;

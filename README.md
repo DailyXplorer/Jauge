@@ -7,7 +7,7 @@ open data and a linear regression you can read in `scripts/data/trend.ts`. Separ
 AI market brief explains why prices may move, from the news. It is labelled as AI-generated and
 never replaces the numeric trend (see [AI market brief](#ai-market-brief)).
 
-Six fuels: Gazole, SP95, E10, SP98, E85, GPLc. UI in English and French, light and dark mode.
+Six fuels: Gazole, SP95, E10, SP98, E85, GPLc. French-only UI, light and dark mode.
 
 ![Screenshot placeholder](docs/screenshot.png)
 

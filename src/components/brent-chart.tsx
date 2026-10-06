@@ -78,7 +78,7 @@ export function BrentChart({ national, brent }: { national: DailySeries; brent: 
               content={
                 <PriceTooltip
                   config={config}
-                  format={(value, key) => (key === "brent" ? `${euros(value, 2)}/bbl` : price(Math.round(value * 1000)))}
+                  format={(value, key) => (key === "brent" ? `${euros(value, 2)}/baril` : price(Math.round(value * 1000)))}
                 />
               }
             />
