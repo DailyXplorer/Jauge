@@ -68,7 +68,7 @@ const fr = {
     "Moins de 3 stations : pas de moyenne quotidienne publiée pour cette ville. Voici les prix actuels.",
   openMap: "Voir sur la carte",
   back: "Retour à la France",
-  githubStar: "Étoile",
+  githubStar: "Star",
   githubStarLabel: "Mettre une étoile à Jauge sur GitHub",
   footerLicence: "Licence MIT",
   footerAttribution: "Données de prix : prix-carburants.gouv.fr (Licence Ouverte)",
